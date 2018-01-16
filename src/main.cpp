@@ -98,8 +98,34 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
-          double steer_value;
-          double throttle_value;
+          // transform waypoints to car's frame
+          const double sinpsi = sin(psi);
+          const double cospsi = cos(psi);
+          for (int i = 0; i < ptsx.size(); i++) {
+            const double dx = ptsx[i] - px;
+            const double dy = ptsy[i] - py;
+            ptsx[i] = dx * cospsi + dy * sinpsi;
+            ptsy[i] = -dx * sinpsi + dy * cospsi;
+          }
+          
+          
+          // fit waypoints to polynomial of degree 3
+          Eigen::VectorXd xvals = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
+          Eigen::VectorXd yvals = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
+          auto coeffs = polyfit(xvals, yvals, 3);
+
+          // calculate cross track error orientation error
+          auto cte = -polyeval(coeffs, 0);
+          auto oe = -atan(coeffs[1]);
+          cout << "Errors: cte=" << cte << " oe=" << oe << std::endl;
+          
+          Eigen::VectorXd state(6);
+          state << 0, 0, 0, v, cte, oe;
+          
+          // calculate steering and throttle
+          auto output = mpc.Solve(state, coeffs);
+          const double steer_value = output[0];
+          const double throttle_value = output[1];
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
