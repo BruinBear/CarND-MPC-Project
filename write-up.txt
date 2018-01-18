@@ -1,0 +1,25 @@
+MPC model review:
+Model predictive control uses an optimizer to find the control inputs and minimize the cost function.The model in model predictive control takes the car's physics and car's actuations(acceleration and orientation change) into account. The constrainst will include initial conditions, actuation constraints and erros between the predicative state and reference states.
+After the optimization solver finds a solution, which is a list of actuation inputs, we apply the first actuation only. The whole process then repeats itself.
+
+State tuple: (x, y, psi, v, cte, epsi, delta, a) for each timestamp
+Actuator inputs: (delta, a)
+Update equation:
+x_t+1 = x_t + v_t * cos(psi_t) * dt
+y_t+1 = y_t + v_t * sin(psi_t) * dt
+psi_t+1 = psi_t + v_t/L_f * delta_t * dt
+v_t+1 = v_t + a_t * dt
+cte_t+1 = f(x_t) - y_t + v_t * sin(epsi_t) * dt
+epsi_t+1 = psi_t - psides_t + v_t / L_f * delta_t * dt
+
+Why smaller dt is better? (finer resolution)
+When dt is smaller, the model's fitted polynomial is closer to the actual state, thus it is more accurate. Smaller dt also allows actuation to be applied more frequently, resulting in a smoother speed/orientation change.
+
+Why larger N isn't always better? (computational time)
+Since we only care about the first actuation output, we don't need N to be too big. If N is too big, we will create more delay for applying actuation. 
+
+How does time horizon (N*dt) affect the predicted path? This relates to the car speed too.
+For a fixed speed, if N*dt is too big, then the fitted polynomial might not be accurate since more turns could happen. If it is too small, it is meaningless since the delay in applying actuation might be bigger than N*dt.
+Waypoints a transformed into the car's frame before being used for polyfit.
+
+The delay is introduced by making dt 100ms and shifting actuations by 100 ms aka one time step.
